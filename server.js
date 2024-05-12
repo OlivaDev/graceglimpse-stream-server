@@ -12,7 +12,9 @@ const webmToMp4 = require("webm-to-mp4");
  
 
 app.use(cors())
-
+app.use('/public',
+  express.static( path.resolve( __dirname, './public' ) )
+);
 app.use(bodyParser.json({limit: "50mb"}))
 
 const io = new serv.Server(server, {cors:{origin: "*"}})
@@ -22,7 +24,7 @@ app.get('/video', (req, res) => {
     if (!range)
         res.status(400).send('error')
 
-    const videoPath = 'public/recording.webm'
+    const videoPath = 'public/frag_bunny.mp4'
     const videoSize = fs.statSync(videoPath).size
 
     const chunkSize = 10 ** 6
@@ -34,7 +36,7 @@ app.get('/video', (req, res) => {
         "Content-Range": `bytes ${start}-${end}/${videoSize}`,
         "Accept-Ranges": 'bytes',
         "Content-Length": contentLength,
-        "Content-Type": 'video/webm'
+        "Content-Type": 'video/mp4'
     }
 
     res.writeHead(206, headers)
@@ -46,16 +48,29 @@ app.get('/video', (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('Conectado al socket');
-    socket.on("updateStream", (req) => {
-        let fileStream = fs.createWriteStream('public/recording.webm', { flags: 'a' });
-        var fileBuffer = Buffer.from(req, 'base64');
-        fileStream.write(fileBuffer);
-        if(fs.existsSync("public/recording.webm")){
-            fs.writeFileSync('public/recording.mp4', Buffer.from(webmToMp4(fs.readFileSync(fileStream.path))));
-        }
+    /*
+    socket.on("RTCanswer", (req) => {
+        io.sockets.emit("RTCanswer", req)
+    })
 
+    socket.on("newRTC", (req) => {
+        io.sockets.emit("newRTC", req)
+    })
+    */
+
+    socket.on("joinStream", (req) => {
+        io.sockets.emit("joinStream", req)
+    })
+
+    socket.on("joinAccepted", (req) => {
+        io.sockets.emit("joinAccepted", req)
+    })
+
+    socket.on("joinAnswer", (req) => {
+        io.sockets.emit("joinAnswer", req)
     })
 })
+
 
 server.listen(3000, () => {
     console.log("servidor inicializado")
